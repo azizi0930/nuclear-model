@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدل اتمی سه بعدی پیشرفته - شبیه‌سازی واقعی واپاشی هسته‌ای</title>
+    <style>
+        /* Reset و تنظیمات پایه */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 100%);
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 2000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* هدر */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+
+        /* پنل کنترل */
+        .control-panel {
+            background: rgba(255,255,255,0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        select, input[type="range"] {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            margin: 6px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-danger { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        .btn-success { background: linear-gradient(135deg, #38a169, #2f855a); }
+        .btn-warning { background: linear-gradient(135deg, #d69e2e, #b7791f); }
+        .btn-info { background: linear-gradient(135deg, #3182ce, #2c5aa0); }
+
+        .animation-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .display-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .display-options label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .display-options label:hover {
+            background: #f7fafc;
+        }
+
+        /* بخش نمایش بصری */
+        .visualization-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .atom-viewer {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            position: relative;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        #atom-container {
+            width: 100%;
+            height: 650px;
+            background: linear-gradient(135deg, #0a1929, #1a365d, #2d4a6e);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .viewer-controls {
+            margin-top: 20px;
+            text-align: center;
+            color: #4a5568;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .control-hint {
+            background: #edf2f7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* اطلاعات عنصر */
+        .element-info {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            max-height: 650px;
+            overflow-y: auto;
+        }
+
+        .element-info h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #e2e8f0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-right: 4px solid #667eea;
+            font-size: 13px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .value {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .nuclear-composition {
+            margin: 15px 0;
+            padding: 12px;
+            background: #e6fffa;
+            border-radius: 8px;
+            border-right: 4px solid #38b2ac;
+        }
+
+        .particle-counts {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .particle-count {
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .protons { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        .neutrons { background: linear-gradient(135deg, #3182ce, #2c5aa0); }
+        .electrons { background: linear-gradient(135deg, #38a169, #2f855a); }
+
+        .decay-info {
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 8px;
+            border-right: 4px solid #e53e3e;
+            background: #fed7d7;
+        }
+
+        .decay-active {
+            background: #c6f6d5;
+            border-right-color: #38a169;
+        }
+
+        .radiation-colors {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .radiation-color {
+            padding: 6px;
+            border-radius: 5px;
+            color: white;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .alpha-color { background: #e53e3e; }
+        .beta-color { background: #3182ce; }
+        .gamma-color { background: #9b59b6; }
+
+        /* بخش داده‌ها */
+        .data-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .chart-container, .decay-types, .interaction-info {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .chart-container h3, .decay-types h3, .interaction-info h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3rem;
+            border-bottom: 3px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+
+        /* انواع واپاشی */
+        .decay-types-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .decay-type {
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .decay-type:hover {
+            transform: translateY(-3px);
+        }
+
+        .alpha-decay { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        .beta-decay { background: linear-gradient(135deg, #3182ce, #2c5aa0); }
+        .gamma-decay { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
+        .decay-equation {
+            font-family: 'Courier New', monospace;
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            direction: ltr;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        /* رسپانسیو */
+        @media (max-width: 1400px) {
+            .visualization-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .data-section {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 2.2rem;
+            }
+
+            .animation-controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .display-options {
+                grid-template-columns: 1fr;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .particle-counts {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* نمودارها */
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        /* نمایش برهم‌کنش */
+        .interaction-display {
+            height: 120px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+        }
+
+        .material-layer {
+            position: absolute;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
+            border-right: 2px solid #cbd5e0;
+        }
+
+        /* اسکرول بار */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+
+        /* نمایش مدارها */
+        .orbital-types {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .orbital-type {
+            padding: 6px;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .s-orbital { background: #3498db; }
+        .p-orbital { background: #2ecc71; }
+        .d-orbital { background: #e74c3c; }
+        .f-orbital { background: #9b59b6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌌 مدل اتمی سه بعدی پیشرفته</h1>
+            <p>شبیه‌سازی واقعی واپاشی هسته‌ای و برهم‌کنش تابش با مواد</p>
+        </header>
+
+        <div class="main-content">
+            <!-- بخش کنترل‌ها -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <label for="element-select">انتخاب عنصر:</label>
+                    <select id="element-select">
+                        <!-- عناصر به صورت داینامیک اضافه می‌شوند -->
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="element-slider">شماره اتمی: <span id="atomic-number">1</span></label>
+                    <input type="range" id="element-slider" min="1" max="118" value="1" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label for="decay-type">نوع واپاشی:</label>
+                    <select id="decay-type">
+                        <option value="none">بدون واپاشی</option>
+                        <option value="alpha">آلفا (α) - قرمز</option>
+                        <option value="beta">بتا (β) - آبی</option>
+                        <option value="gamma">گاما (γ) - بنفش</option>
+                    </select>
+                </div>
+
+                <div class="animation-controls">
+                    <button id="rotate-toggle" class="btn">⏸ توقف چرخش</button>
+                    <button id="reset-view" class="btn">🔄 بازنشانی</button>
+                    <button id="toggle-decay" class="btn btn-danger">☢️ شبیه‌سازی واپاشی</button>
+                    <button id="show-interaction" class="btn btn-info">🛡️ برهم‌کنش تابش</button>
+                </div>
+
+                <div class="display-options">
+                    <label>
+                        <input type="checkbox" id="show-electrons" checked>
+                        نمایش الکترون‌ها
+                    </label>
+                    <label>
+                        <input type="checkbox" id="show-orbitals" checked>
+                        نمایش مدارها
+                    </label>
+                    <label>
+                        <input type="checkbox" id="show-nucleus" checked>
+                        نمایش هسته
+                    </label>
+                    <label>
+                        <input type="checkbox" id="show-radiation">
+                        نمایش تابش
+                    </label>
+                </div>
+            </div>
+
+            <!-- بخش نمایش سه بعدی -->
+            <div class="visualization-section">
+                <div class="atom-viewer">
+                    <div id="atom-container"></div>
+                    <div class="viewer-controls">
+                        <div class="control-hint">💡 برای چرخش: ماوس را بکشید</div>
+                        <div class="control-hint">🔍 برای زوم: اسکرول کنید</div>
+                        <div class="control-hint">🎯 نمایش رنگ‌ها: آلفا(قرمز) - بتا(آبی) - گاما(بنفش)</div>
+                    </div>
+                </div>
+
+                <!-- اطلاعات عنصر -->
+                <div class="element-info">
+                    <h3 id="element-name">هیدروژن (H)</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">شماره اتمی:</span>
+                            <span class="value" id="info-atomic-number">1</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">جرم اتمی:</span>
+                            <span class="value" id="info-atomic-mass">1.008</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">دسته:</span>
+                            <span class="value" id="info-category">غیرفلز</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">پایداری:</span>
+                            <span class="value" id="info-stability">پایدار</span>
+                        </div>
+                    </div>
+
+                    <div class="nuclear-composition">
+                        <h4>ترکیب هسته</h4>
+                        <div class="particle-counts">
+                            <div class="particle-count protons">
+                                <div class="number" id="proton-count">1</div>
+                                <div class="label">پروتون</div>
+                            </div>
+                            <div class="particle-count neutrons">
+                                <div class="number" id="neutron-count">0</div>
+                                <div class="label">نوترون</div>
+                            </div>
+                            <div class="particle-count electrons">
+                                <div class="number" id="electron-count">1</div>
+                                <div class="label">الکترون</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="radiation-colors">
+                        <div class="radiation-color alpha-color">آلفا (α)</div>
+                        <div class="radiation-color beta-color">بتا (β)</div>
+                        <div class="radiation-color gamma-color">گاما (γ)</div>
+                    </div>
+
+                    <div class="decay-info" id="decay-info">
+                        <h4>اطلاعات واپاشی</h4>
+                        <p>این عنصر پایدار است و واپاشی ندارد.</p>
+                    </div>
+
+                    <div class="orbital-types">
+                        <div class="orbital-type s-orbital">s</div>
+                        <div class="orbital-type p-orbital">p</div>
+                        <div class="orbital-type d-orbital">d</div>
+                        <div class="orbital-type f-orbital">f</div>
+                    </div>
+
+                    <div id="electron-configuration">
+                        <strong>پیکربندی الکترونی:</strong> 1s¹
+                    </div>
+                </div>
+            </div>
+
+            <!-- بخش اطلاعات علمی -->
+            <div class="data-section">
+                <!-- نمودار واپاشی -->
+                <div class="chart-container">
+                    <h3>منحنی واپاشی هسته‌ای</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="decay-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- انواع واپاشی -->
+                <div class="decay-types">
+                    <h3>انواع واپاشی هسته‌ای</h3>
+                    <div class="decay-types-grid">
+                        <div class="decay-type alpha-decay">
+                            <h4>واپاشی آلفا (α)</h4>
+                            <div class="decay-equation">
+                                A Z X → A-4 Z-2 Y + 4 2 α + Q
+                            </div>
+                            <p><strong>انرژی:</strong> 4-9 MeV</p>
+                            <p><strong>نفوذ:</strong> 2-10 cm در هوا</p>
+                            <p><strong>موارد:</strong> اورانیوم، رادیوم، پولونیوم</p>
+                        </div>
+                        <div class="decay-type beta-decay">
+                            <h4>واپاشی بتا (β)</h4>
+                            <div class="decay-equation">
+                                n → p + e⁻ + ν̄ₑ  (β⁻)
+                            </div>
+                            <p><strong>انرژی:</strong> 0.5-2 MeV</p>
+                            <p><strong>نفوذ:</strong> چند متر در هوا</p>
+                            <p><strong>موارد:</strong> کربن-14، پتاسیم-40</p>
+                        </div>
+                        <div class="decay-type gamma-decay">
+                            <h4>واپاشی گاما (γ)</h4>
+                            <div class="decay-equation">
+                                A Z X* → A Z X + γ
+                            </div>
+                            <p><strong>انرژی:</strong> 0.1-10 MeV</p>
+                            <p><strong>نفوذ:</strong> بسیار بالا</p>
+                            <p><strong>موارد:</strong> تکنسیوم-99m، کبالت-60</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- برهم‌کنش تابش -->
+                <div class="interaction-info">
+                    <h3>برهم‌کنش تابش با مواد</h3>
+                    <div class="interaction-display" id="interaction-display">
+                        <!-- نمایش برهم‌کنش -->
+                    </div>
+                    <div id="interaction-info">
+                        <p><strong>آلفا:</strong> توسط کاغذ متوقف می‌شود</p>
+                        <p><strong>بتا:</strong> توسط آلومینیوم متوقف می‌شود</p>
+                        <p><strong>گاما:</strong> توسط سرب کاهش می‌یابد</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بارگذاری کتابخانه‌ها -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // داده‌های کامل عناصر با اطلاعات واپاشی
+        const elementsData = {
+            1: {
+                name: "هیدروژن", symbol: "H", category: "غیرفلز",
+                atomicMass: 1.008, stability: "پایدار",
+                electrons: 1, neutrons: 0,
+                electronConfig: "1s¹",
+                description: "سبک‌ترین و فراوان‌ترین عنصر در جهان",
+                radiation: [],
+                shells: [{ name: "1s", electrons: 1, radius: 1.0, type: "s" }]
+            },
+            2: {
+                name: "هلیوم", symbol: "He", category: "گاز نجیب",
+                atomicMass: 4.0026, stability: "پایدار",
+                electrons: 2, neutrons: 2,
+                electronConfig: "1s²",
+                description: "گاز نجیب سبک با پوسته کامل",
+                radiation: [],
+                shells: [{ name: "1s", electrons: 2, radius: 1.0, type: "s" }]
+            },
+            6: {
+                name: "کربن", symbol: "C", category: "غیرفلز",
+                atomicMass: 12.011, stability: "پایدار",
+                electrons: 6, neutrons: 6,
+                electronConfig: "1s² 2s² 2p²",
+                description: "اساس شیمی آلی و حیات",
+                radiation: [
+                    { type: "beta", energy: 0.156, isotope: "C-14", halfLife: "5730 سال" }
+                ],
+                shells: [
+                    { name: "1s", electrons: 2, radius: 1.0, type: "s" },
+                    { name: "2s", electrons: 2, radius: 2.0, type: "s" },
+                    { name: "2p", electrons: 2, radius: 2.5, type: "p" }
+                ]
+            },
+            19: {
+                name: "پتاسیم", symbol: "K", category: "فلز قلیایی",
+                atomicMass: 39.098, stability: "پایدار",
+                electrons: 19, neutrons: 20,
+                electronConfig: "[Ar] 4s¹",
+                description: "عنصر ضروری برای موجودات زنده",
+                radiation: [
+                    { type: "beta", energy: 1.31, isotope: "K-40", halfLife: "1.25e9 سال" },
+                    { type: "gamma", energy: 1.46, isotope: "K-40", halfLife: "1.25e9 سال" }
+                ],
+                shells: generateShells(19)
+            },
+            27: {
+                name: "کبالت", symbol: "Co", category: "فلز انتقالی",
+                atomicMass: 58.933, stability: "پایدار",
+                electrons: 27, neutrons: 32,
+                electronConfig: "[Ar] 3d⁷ 4s²",
+                description: "استفاده در آلیاژها و پزشکی هسته‌ای",
+                radiation: [
+                    { type: "gamma", energy: 1.17, isotope: "Co-60", halfLife: "5.27 سال" },
+                    { type: "gamma", energy: 1.33, isotope: "Co-60", halfLife: "5.27 سال" }
+                ],
+                shells: generateShells(27)
+            },
+            43: {
+                name: "تکنسیوم", symbol: "Tc", category: "فلز انتقالی",
+                atomicMass: 98, stability: "ناپایدار",
+                electrons: 43, neutrons: 55,
+                electronConfig: "[Kr] 4d⁵ 5s²",
+                description: "اولین عنصر مصنوعی ساخته شده",
+                radiation: [
+                    { type: "gamma", energy: 0.140, isotope: "Tc-99m", halfLife: "6.01 ساعت" }
+                ],
+                shells: generateShells(43)
+            },
+            53: {
+                name: "ید", symbol: "I", category: "هالوژن",
+                atomicMass: 126.90, stability: "پایدار",
+                electrons: 53, neutrons: 74,
+                electronConfig: "[Kr] 4d¹⁰ 5s² 5p⁵",
+                description: "عنصر ضروری برای غده تیروئید",
+                radiation: [
+                    { type: "beta", energy: 0.606, isotope: "I-131", halfLife: "8.02 روز" },
+                    { type: "gamma", energy: 0.364, isotope: "I-131", halfLife: "8.02 روز" }
+                ],
+                shells: generateShells(53)
+            },
+            84: {
+                name: "پولونیوم", symbol: "Po", category: "فلز پس انتقال",
+                atomicMass: 209, stability: "ناپایدار",
+                electrons: 84, neutrons: 125,
+                electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴",
+                description: "عنصر بسیار رادیواکتیو کشف شده توسط ماری کوری",
+                radiation: [
+                    { type: "alpha", energy: 5.3, isotope: "Po-210", halfLife: "138.4 روز" }
+                ],
+                shells: generateShells(84)
+            },
+            86: {
+                name: "رادون", symbol: "Rn", category: "گاز نجیب",
+                atomicMass: 222, stability: "ناپایدار",
+                electrons: 86, neutrons: 136,
+                electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶",
+                description: "گاز رادیواکتیو طبیعی خطرناک برای سلامت",
+                radiation: [
+                    { type: "alpha", energy: 5.49, isotope: "Rn-222", halfLife: "3.8 روز" }
+                ],
+                shells: generateShells(86)
+            },
+            88: {
+                name: "رادیوم", symbol: "Ra", category: "فلز قلیایی خاکی",
+                atomicMass: 226, stability: "ناپایدار",
+                electrons: 88, neutrons: 138,
+                electronConfig: "[Rn] 7s²",
+                description: "عنصر رادیواکتیو کشف شده توسط ماری کوری",
+                radiation: [
+                    { type: "alpha", energy: 4.78, isotope: "Ra-226", halfLife: "1600 سال" },
+                    { type: "gamma", energy: 0.186, isotope: "Ra-226", halfLife: "1600 سال" }
+                ],
+                shells: generateShells(88)
+            },
+            92: {
+                name: "اورانیوم", symbol: "U", category: "آکتینید",
+                atomicMass: 238.03, stability: "ناپایدار",
+                electrons: 92, neutrons: 146,
+                electronConfig: "[Rn] 5f³ 6d¹ 7s²",
+                description: "سوخت نیروگاه‌های هسته‌ای",
+                radiation: [
+                    { type: "alpha", energy: 4.27, isotope: "U-238", halfLife: "4.47e9 سال" },
+                    { type: "gamma", energy: 0.048, isotope: "U-238", halfLife: "4.47e9 سال" }
+                ],
+                shells: generateShells(92)
+            },
+            94: {
+                name: "پلوتونیوم", symbol: "Pu", category: "آکتینید",
+                atomicMass: 244, stability: "ناپایدار",
+                electrons: 94, neutrons: 150,
+                electronConfig: "[Rn] 5f⁶ 7s²",
+                description: "استفاده در سلاح‌های هسته‌ای و راکتورها",
+                radiation: [
+                    { type: "alpha", energy: 5.16, isotope: "Pu-239", halfLife: "24100 سال" }
+                ],
+                shells: generateShells(94)
+            }
+        };
+
+        // تولید پوسته‌های الکترونی
+        function generateShells(atomicNumber) {
+            const shells = [];
+            const shellConfig = [
+                { name: "1s", max: 2, radius: 1.0, type: "s" },
+                { name: "2s", max: 2, radius: 2.0, type: "s" },
+                { name: "2p", max: 6, radius: 2.5, type: "p" },
+                { name: "3s", max: 2, radius: 3.0, type: "s" },
+                { name: "3p", max: 6, radius: 3.5, type: "p" },
+                { name: "4s", max: 2, radius: 4.0, type: "s" },
+                { name: "3d", max: 10, radius: 3.8, type: "d" },
+                { name: "4p", max: 6, radius: 4.5, type: "p" },
+                { name: "5s", max: 2, radius: 5.0, type: "s" },
+                { name: "4d", max: 10, radius: 4.8, type: "d" },
+                { name: "5p", max: 6, radius: 5.5, type: "p" },
+                { name: "6s", max: 2, radius: 6.0, type: "s" },
+                { name: "4f", max: 14, radius: 5.2, type: "f" },
+                { name: "5d", max: 10, radius: 5.8, type: "d" },
+                { name: "6p", max: 6, radius: 6.5, type: "p" },
+                { name: "7s", max: 2, radius: 7.0, type: "s" },
+                { name: "5f", max: 14, radius: 6.2, type: "f" },
+                { name: "6d", max: 10, radius: 6.8, type: "d" },
+                { name: "7p", max: 6, radius: 7.5, type: "p" }
+            ];
+
+            let remaining = atomicNumber;
+            for (const shell of shellConfig) {
+                const electrons = Math.min(remaining, shell.max);
+                if (electrons > 0) {
+                    shells.push({
+                        name: shell.name,
+                        electrons: electrons,
+                        radius: shell.radius,
+                        type: shell.type
+                    });
+                }
+                remaining -= electrons;
+                if (remaining <= 0) break;
+            }
+            return shells;
+        }
+
+        // تکمیل داده‌های عناصر باقی‌مانده
+        function completeElementsData() {
+            for (let i = 1; i <= 118; i++) {
+                if (!elementsData[i]) {
+                    const neutrons = Math.round(i * 1.5);
+                    elementsData[i] = {
+                        name: `عنصر ${i}`,
+                        symbol: `E${i}`,
+                        category: getElementCategory(i),
+                        atomicMass: i * 2 + (Math.random() - 0.5),
+                        stability: i > 83 ? "ناپایدار" : "پایدار",
+                        electrons: i,
+                        neutrons: neutrons,
+                        electronConfig: generateElectronConfig(i),
+                        radiation: [],
+                        shells: generateShells(i)
+                    };
+                }
+            }
+        }
+
+        function generateElectronConfig(atomicNumber) {
+            const config = generateShells(atomicNumber);
+            return config.map(shell => `${shell.name}${shell.electrons}`).join(" ");
+        }
+
+        function getElementCategory(atomicNumber) {
+            if (atomicNumber === 1) return "غیرفلز";
+            if ([2, 10, 18, 36, 54, 86].includes(atomicNumber)) return "گاز نجیب";
+            if (atomicNumber <= 4) return "فلز قلیایی";
+            if (atomicNumber <= 12) return "فلز قلیایی خاکی";
+            if (atomicNumber <= 17) return "غیرفلز";
+            if (atomicNumber <= 20) return "فلز قلیایی خاکی";
+            return "فلز انتقالی";
+        }
+
+        // Three.js Scene
+        let scene, camera, renderer, controls;
+        let atomGroup, electronsGroup, nucleusGroup, radiationGroup, daughterGroup;
+        let currentElement = 1;
+        let isRotating = true;
+        let isDecaying = false;
+        let showInteraction = false;
+        let decayType = "none";
+        let decayParticles = [];
+        let daughterNucleus = null;
+
+        // مقداردهی اولیه صحنه Three.js
+        function initThreeJS() {
+            const container = document.getElementById('atom-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a1929);
+
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 25;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // نورپردازی
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+
+            // گروه‌ها
+            atomGroup = new THREE.Group();
+            electronsGroup = new THREE.Group();
+            nucleusGroup = new THREE.Group();
+            radiationGroup = new THREE.Group();
+            daughterGroup = new THREE.Group();
+
+            scene.add(atomGroup);
+            scene.add(electronsGroup);
+            scene.add(nucleusGroup);
+            scene.add(radiationGroup);
+            scene.add(daughterGroup);
+
+            window.addEventListener('resize', onWindowResize);
+
+            completeElementsData();
+            createAtomicModel(currentElement);
+            populateElementSelect();
+
+            animate();
+        }
+
+        function createAtomicModel(atomicNumber) {
+            clearScene();
+            const element = elementsData[atomicNumber];
+
+            createNucleus(element);
+            createElectrons(element);
+            createRadiation(element);
+
+            if (isDecaying) {
+                startDecayAnimation(element);
+            }
+
+            updateElementInfo(element);
+        }
+
+        function clearScene() {
+            [atomGroup, electronsGroup, nucleusGroup, radiationGroup, daughterGroup].forEach(group => {
+                while (group.children.length > 0) {
+                    group.remove(group.children[0]);
+                }
+            });
+            decayParticles = [];
+            daughterNucleus = null;
+        }
+
+        function createNucleus(element) {
+            if (!document.getElementById('show-nucleus').checked) return;
+
+            const protons = element.electrons;
+            const neutrons = element.neutrons;
+            const totalNucleons = protons + neutrons;
+            const nucleusRadius = 1.2 * Math.pow(totalNucleons, 1/3);
+
+            // هسته اصلی شفاف
+            const nucleusGeometry = new THREE.SphereGeometry(nucleusRadius, 32, 32);
+            const nucleusMaterial = new THREE.MeshPhongMaterial({
+                color: 0xe74c3c,
+                transparent: true,
+                opacity: 0.4
+            });
+            const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
+            nucleusGroup.add(nucleus);
+
+            // ایجاد نوکلئون‌ها
+            createNucleons(protons, neutrons, nucleusRadius);
+        }
+
+        function createNucleons(protons, neutrons, nucleusRadius) {
+            const nucleonRadius = 0.25;
+
+            for (let i = 0; i < protons; i++) {
+                createNucleon(0xe74c3c, nucleonRadius, nucleusRadius, i, protons + neutrons);
+            }
+
+            for (let i = 0; i < neutrons; i++) {
+                createNucleon(0x3498db, nucleonRadius, nucleusRadius, i + protons, protons + neutrons);
+            }
+        }
+
+        function createNucleon(color, radius, nucleusRadius, index, total) {
+            const geometry = new THREE.SphereGeometry(radius, 8, 8);
+            const material = new THREE.MeshPhongMaterial({ color: color });
+            const nucleon = new THREE.Mesh(geometry, material);
+
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            const r = nucleusRadius * 0.6 * Math.random();
+
+            nucleon.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+
+            nucleusGroup.add(nucleon);
+        }
+
+        function createElectrons(element) {
+            if (!document.getElementById('show-electrons').checked) return;
+
+            element.shells.forEach((shell, shellIndex) => {
+                // ایجاد مدار
+                if (document.getElementById('show-orbitals').checked) {
+                    createOrbital(shell, shellIndex);
+                }
+
+                // ایجاد الکترون‌ها
+                createElectronsInShell(shell, shellIndex);
+            });
+        }
+
+        function createOrbital(shell, shellIndex) {
+            let geometry;
+            const color = getOrbitalColor(shell.type);
+
+            if (shell.type === "s") {
+                geometry = new THREE.SphereGeometry(shell.radius, 16, 16);
+            } else {
+                geometry = new THREE.TorusGeometry(shell.radius, 0.05, 8, 32);
+            }
+
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.2,
+                wireframe: true
+            });
+
+            const orbital = new THREE.Mesh(geometry, material);
+            if (shell.type !== "s") {
+                orbital.rotation.x = Math.PI / 2;
+            }
+            electronsGroup.add(orbital);
+        }
+
+        function getOrbitalColor(type) {
+            switch(type) {
+                case "s": return 0x3498db;
+                case "p": return 0x2ecc71;
+                case "d": return 0xe74c3c;
+                case "f": return 0x9b59b6;
+                default: return 0xffffff;
+            }
+        }
+
+        function createElectronsInShell(shell, shellIndex) {
+            for (let i = 0; i < shell.electrons; i++) {
+                createElectron(shell, shellIndex, i);
+            }
+        }
+
+        function createElectron(shell, shellIndex, electronIndex) {
+            const geometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xf1c40f,
+                emissive: 0xf39c12
+            });
+            const electron = new THREE.Mesh(geometry, material);
+
+            let position;
+            if (shell.type === "s") {
+                position = new THREE.Vector3(0, 0, 0);
+            } else {
+                const angle = (electronIndex / shell.electrons) * Math.PI * 2;
+                position = new THREE.Vector3(
+                    shell.radius * Math.cos(angle),
+                    shell.radius * Math.sin(angle),
+                    0
+                );
+            }
+
+            electron.position.copy(position);
+
+            electron.userData = {
+                radius: shell.radius,
+                angle: (electronIndex / shell.electrons) * Math.PI * 2,
+                speed: 0.03 / shell.radius,
+                shellIndex: shellIndex
+            };
+
+            electronsGroup.add(electron);
+        }
+
+        function createRadiation(element) {
+            if (!document.getElementById('show-radiation').checked) return;
+
+            element.radiation.forEach(rad => {
+                createRadiationParticle(rad);
+            });
+        }
+
+        function createRadiationParticle(radiation) {
+            const color = getRadiationColor(radiation.type);
+            const geometry = new THREE.SphereGeometry(0.1, 6, 6);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const particle = new THREE.Mesh(geometry, material);
+
+            particle.position.set(2, 0, 0);
+            radiationGroup.add(particle);
+        }
+
+        function getRadiationColor(type) {
+            switch(type) {
+                case "alpha": return 0xe74c3c;
+                case "beta": return 0x3498db;
+                case "gamma": return 0x9b59b6;
+                default: return 0xffffff;
+            }
+        }
+
+        function startDecayAnimation(element) {
+            if (decayType === "none") return;
+
+            // ایجاد ذرات واپاشی
+            createDecayParticles(element);
+
+            // ایجاد هسته دختر
+            createDaughterNucleus(element);
+        }
+
+        function createDecayParticles(element) {
+            const particleCount = getParticleCountForDecay(decayType);
+
+            for (let i = 0; i < particleCount; i++) {
+                createDecayParticle(decayType, i);
+            }
+        }
+
+        function getParticleCountForDecay(type) {
+            switch(type) {
+                case "alpha": return 3;
+                case "beta": return 5;
+                case "gamma": return 8;
+                default: return 0;
+            }
+        }
+
+        function createDecayParticle(type, index) {
+            const color = getRadiationColor(type);
+            let geometry, size, speed;
+
+            switch(type) {
+                case "alpha":
+                    geometry = new THREE.SphereGeometry(0.3, 8, 8);
+                    size = 0.3;
+                    speed = 0.08;
+                    break;
+                case "beta":
+                    geometry = new THREE.SphereGeometry(0.15, 6, 6);
+                    size = 0.15;
+                    speed = 0.12;
+                    break;
+                case "gamma":
+                    geometry = new THREE.SphereGeometry(0.08, 4, 4);
+                    size = 0.08;
+                    speed = 0.2;
+                    break;
+                default:
+                    return;
+            }
+
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const particle = new THREE.Mesh(geometry, material);
+
+            const angle = (index / 10) * Math.PI * 2;
+            particle.position.set(
+                Math.cos(angle) * 2,
+                Math.sin(angle) * 2,
+                (Math.random() - 0.5) * 2
+            );
+
+            particle.userData = {
+                type: type,
+                speed: speed,
+                direction: new THREE.Vector3(
+                    Math.random() - 0.5,
+                    Math.random() - 0.5,
+                    Math.random() - 0.5
+                ).normalize(),
+                life: 0,
+                maxLife: 80 + Math.random() * 40
+            };
+
+            radiationGroup.add(particle);
+            decayParticles.push(particle);
+        }
+
+        function createDaughterNucleus(element) {
+            if (decayType !== "alpha") return;
+
+            // برای واپاشی آلفا، هسته دختر کوچک‌تر است
+            const daughterProtons = element.electrons - 2;
+            const daughterNeutrons = element.neutrons - 2;
+            const totalNucleons = daughterProtons + daughterNeutrons;
+            const radius = 1.2 * Math.pow(totalNucleons, 1/3);
+
+            const geometry = new THREE.SphereGeometry(radius, 16, 16);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x9b59b6,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            daughterNucleus = new THREE.Mesh(geometry, material);
+            daughterNucleus.position.set(8, 0, 0);
+            daughterGroup.add(daughterNucleus);
+        }
+
+        function updateElectronPositions() {
+            electronsGroup.children.forEach(electron => {
+                const data = electron.userData;
+                if (data && data.radius) {
+                    data.angle += data.speed;
+
+                    if (electron.parent.shellType === "s") {
+                        // حرکت تصادفی در اوربیتال s
+                        electron.position.set(
+                            (Math.random() - 0.5) * 0.3,
+                            (Math.random() - 0.5) * 0.3,
+                            (Math.random() - 0.5) * 0.3
+                        );
+                    } else {
+                        // حرکت دایره‌ای در اوربیتال‌های دیگر
+                        const x = data.radius * Math.cos(data.angle);
+                        const y = data.radius * Math.sin(data.angle);
+                        const z = 0.1 * Math.sin(data.angle * 2);
+                        electron.position.set(x, y, z);
+                    }
+                }
+            });
+        }
+
+        function updateDecayParticles() {
+            for (let i = decayParticles.length - 1; i >= 0; i--) {
+                const particle = decayParticles[i];
+                const data = particle.userData;
+
+                data.life++;
+                particle.position.add(data.direction.clone().multiplyScalar(data.speed));
+                particle.material.opacity = 0.8 * (1 - data.life / data.maxLife);
+
+                if (data.life > data.maxLife) {
+                    radiationGroup.remove(particle);
+                    decayParticles.splice(i, 1);
+
+                    if (isDecaying) {
+                        createDecayParticle(decayType, Math.random() * 10);
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isRotating) {
+                atomGroup.rotation.y += 0.005;
+                nucleusGroup.rotation.y += 0.002;
+            }
+
+            updateElectronPositions();
+            updateDecayParticles();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('atom-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function populateElementSelect() {
+            const select = document.getElementById('element-select');
+            select.innerHTML = '';
+
+            for (let i = 1; i <= 118; i++) {
+                const element = elementsData[i];
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${element.name} (${element.symbol}) - ${i}`;
+                select.appendChild(option);
+            }
+        }
+
+        function updateElementInfo(element) {
+            document.getElementById('element-name').textContent = `${element.name} (${element.symbol})`;
+            document.getElementById('info-atomic-number').textContent = element.electrons;
+            document.getElementById('info-atomic-mass').textContent = element.atomicMass.toFixed(4);
+            document.getElementById('info-category').textContent = element.category;
+            document.getElementById('info-stability').textContent = element.stability;
+
+            document.getElementById('proton-count').textContent = element.electrons;
+            document.getElementById('neutron-count').textContent = element.neutrons;
+            document.getElementById('electron-count').textContent = element.electrons;
+
+            document.getElementById('electron-configuration').innerHTML =
+                `<strong>پیکربندی الکترونی:</strong> ${element.electronConfig}`;
+
+            // به‌روزرسانی اطلاعات واپاشی
+            const decayInfo = document.getElementById('decay-info');
+            if (element.radiation.length > 0) {
+                decayInfo.className = 'decay-info decay-active';
+                let decayHTML = '<h4>تابش‌های طبیعی</h4>';
+                element.radiation.forEach(rad => {
+                    decayHTML += `<p>${rad.type} - ${rad.isotope} - انرژی: ${rad.energy} MeV</p>`;
+                });
+                decayInfo.innerHTML = decayHTML;
+            } else {
+                decayInfo.className = 'decay-info';
+                decayInfo.innerHTML = '<h4>اطلاعات واپاشی</h4><p>این عنصر پایدار است و واپاشی ندارد.</p>';
+            }
+        }
+
+        // مدیریت رویدادها
+        document.addEventListener('DOMContentLoaded', function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+            script.onload = function() {
+                const orbitScript = document.createElement('script');
+                orbitScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+                orbitScript.onload = function() {
+                    initThreeJS();
+                    setupEventListeners();
+                };
+                document.head.appendChild(orbitScript);
+            };
+            document.head.appendChild(script);
+        });
+
+        function setupEventListeners() {
+            const elementSlider = document.getElementById('element-slider');
+            const elementSelect = document.getElementById('element-select');
+            const decayTypeSelect = document.getElementById('decay-type');
+
+            elementSlider.addEventListener('input', function() {
+                currentElement = parseInt(this.value);
+                updateElementInfo(elementsData[currentElement]);
+                createAtomicModel(currentElement);
+                elementSelect.value = currentElement;
+            });
+
+            elementSelect.addEventListener('change', function() {
+                currentElement = parseInt(this.value);
+                updateElementInfo(elementsData[currentElement]);
+                createAtomicModel(currentElement);
+                elementSlider.value = currentElement;
+            });
+
+            decayTypeSelect.addEventListener('change', function() {
+                decayType = this.value;
+                if (isDecaying) {
+                    createAtomicModel(currentElement);
+                }
+            });
+
+            document.getElementById('rotate-toggle').addEventListener('click', function() {
+                isRotating = !isRotating;
+                this.textContent = isRotating ? '⏸ توقف چرخش' : '▶ ادامه چرخش';
+            });
+
+            document.getElementById('reset-view').addEventListener('click', function() {
+                controls.reset();
+                atomGroup.rotation.set(0, 0, 0);
+            });
+
+            document.getElementById('toggle-decay').addEventListener('click', function() {
+                isDecaying = !isDecaying;
+                createAtomicModel(currentElement);
+            });
+
+            document.getElementById('show-interaction').addEventListener('click', function() {
+                showInteraction = !showInteraction;
+                // نمایش برهم‌کنش تابش با مواد
+            });
+
+            // رویدادهای چک‌باکس‌ها
+            ['show-electrons', 'show-orbitals', 'show-nucleus', 'show-radiation'].forEach(id => {
+                document.getElementById(id).addEventListener('change', function() {
+                    createAtomicModel(currentElement);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
